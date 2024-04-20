@@ -1,0 +1,32 @@
+image: php:8.3
+pipelines:
+  default:
+      - step:
+          name: 'Test'
+          script:
+            - php -v
+            - ls -lah
+      - step:
+          name: 'Deploy to Production'
+          deployment: 'production'
+          trigger: 'manual'
+          script:
+            - apt update
+            - apt install -y zip
+            - cd ..
+            - rm -rf ./aws
+            - curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            - unzip -q awscliv2.zip
+            - ./aws/install
+            - aws configure set region us-west-2
+            - ls -la -F
+            - rm -rf .git
+            - mkdir .tools
+            - curl -o .tools/aws-code-deploy.sh https://raw.githubusercontent.com/techpivot/aws-code-deploy/master/bin/aws-code-deploy.sh
+            - chmod +x .tools/aws-code-deploy.sh
+            - export AWS_CODE_DEPLOY_APPLICATION_NAME="starter"
+            - export AWS_CODE_DEPLOY_DEPLOYMENT_GROUP_NAME="Production"
+            - export AWS_CODE_DEPLOY_APP_SOURCE="$BITBUCKET_CLONE_DIR"
+            - export AWS_CODE_DEPLOY_S3_BUCKET=$AWS_S3_LOCATION
+            - export AWS_CODE_DEPLOY_S3_FILENAME=$BITBUCKET_COMMIT.zip
+            - .tools/aws-code-deploy.sh
